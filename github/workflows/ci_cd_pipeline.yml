@@ -1,0 +1,30 @@
+name: CI/CD Pipeline
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Install MySQL Client
+      run: sudo apt-get install mysql-client
+
+    - name: Initial Schema Deployment
+      run: mysql -h ${{ secrets.MYSQL_HOST }} -u ${{ secrets.MYSQL_USER }} -p${{ secrets.MYSQL_PASSWORD }} ${{ secrets.MYSQL_DATABASE }} < sql/create_climate_data.sql
+
+    - name: Schema Update
+      run: mysql -h ${{ secrets.MYSQL_HOST }} -u ${{ secrets.MYSQL_USER }} -p${{ secrets.MYSQL_PASSWORD }} ${{ secrets.MYSQL_DATABASE }} < sql/update_climate_data.sql
+
+    - name: Data Seeding
+      run: python scripts/seed_data.py
+
+    - name: Concurrent Query Execution
+      run: python scripts/multi_thread_queries.py
+
+    - name: Validation
+      run: |
+        mysql -h ${{ secrets.MYSQL_HOST }} -u ${{ secrets.MYSQL_USER }} -p${{ secrets.MYSQL_PASSWORD }} -e "SELECT COUNT(*) FROM ClimateData;" ${{ secrets.MYSQL_DATABASE }}
